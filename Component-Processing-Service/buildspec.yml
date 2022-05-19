@@ -1,0 +1,32 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      docker: 18
+      java: corretto11
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - $(aws ecr get-login --no-include-email --region $AWS_REGION)
+  build:
+    commands:
+      - echo Build started on `date`
+      - echo Building java
+      - cd Component-Processing-Service
+      - mvn clean package
+      - echo Building the docker image
+      - docker build -t component-processing-service .
+      - docker tag component-processing-service 156962844638.dkr.ecr.ap-south-1.amazonaws.com/component-processing-service-repo-ecr:component-processing-service
+  post_build:
+    commands:
+      - echo Build completed on `date`
+      - echo $(docker images)
+      - docker push 156962844638.dkr.ecr.ap-south-1.amazonaws.com/component-processing-service-repo-ecr:component-processing-service
+      - echo Writing definition files
+      - printf '[{"name":"component-processing-service-container","imageUri":"%s"}]' 156962844638.dkr.ecr.ap-south-1.amazonaws.com/component-processing-service-repo-ecr:component-processing-service > taskdefinition.json
+
+artifacts:
+  files: Component-Processing-Service/taskdefinition.json
+
+
